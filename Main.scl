@@ -1,0 +1,81 @@
+﻿ORGANIZATION_BLOCK "Main"
+TITLE = "Main Program Sweep (Cycle)"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+   VAR_TEMP 
+      lifebit : Bool;
+   END_VAR
+
+   VAR CONSTANT 
+      sApagado : Int := 10;
+      sManual : Int := 20;
+      sAutomatico : Int := 30;
+   END_VAR
+
+
+BEGIN
+	// siwarex 
+	"WP321_DB"(HW_ID:="Local~SIWAREX_WP321_1",
+	           LIFEBIT=>#lifebit);
+	
+	"NodeRed".gramosSiwarex := REAL_TO_INT(IN :="WP321_DB".s_IO_DATA.PROCESS_VAL_1 * 1000);
+	
+	
+	(* IF "NodeRed".pidON = TRUE THEN
+	    "NodeRed".motorHusilloON := TRUE;
+	    "NodeRed".variadorHzFrecuenciaSalida := "NodeRed".variadorHzFrecuenciaAuto;
+	END_IF; *)
+	
+	
+	CASE "States".sActual OF
+	    #sApagado:
+	        "NodeRed".variadorHzFrecuenciaSalida := 0;
+	        IF "NodeRed".motorHusilloON = TRUE AND "NodeRed".pidON = FALSE THEN
+	            "NodeRed".variadorHzFrecuenciaSalida := REAL_TO_INT(INT_TO_REAL("NodeRed".variadorHzFrecuenciaManual) * 460.8);
+	            "States".sActual := #sManual;
+	        ELSIF "NodeRed".motorHusilloON = FALSE AND "NodeRed".pidON = TRUE THEN
+	            "NodeRed".variadorHzFrecuenciaSalida := "NodeRed".variadorHzFrecuenciaAuto;
+	            "NodeRed".motorHusilloON := TRUE;
+	            "States".sActual := #sAutomatico;
+	        END_IF;
+	    #sManual:
+	        "NodeRed".variadorHzFrecuenciaSalida := REAL_TO_INT(INT_TO_REAL("NodeRed".variadorHzFrecuenciaManual) * 460.8);  //460.8 = 27648/60
+	        IF "NodeRed".motorHusilloON = FALSE AND "NodeRed".pidON = FALSE THEN
+	            "NodeRed".variadorHzFrecuenciaSalida := 0;
+	            "States".sActual := #sApagado;
+	        ELSIF "NodeRed".motorHusilloON = TRUE AND "NodeRed".pidON = TRUE THEN
+	            "States".sActual := #sAutomatico;
+	        END_IF;
+	    #sAutomatico:
+	        "NodeRed".variadorHzFrecuenciaSalida := "NodeRed".variadorHzFrecuenciaAuto;
+	        IF "NodeRed".motorHusilloON = TRUE AND "NodeRed".pidON = FALSE  THEN
+	            "NodeRed".motorHusilloON := FALSE;
+	            "States".sActual := #sApagado;
+	        ELSIF "NodeRed".motorHusilloON = FALSE AND "NodeRed".pidON = TRUE THEN
+	            "NodeRed".pidON := FALSE;
+	            "States".sActual := #sApagado;
+	        END_IF; 
+	END_CASE;
+	
+	(* IF "NodeRed".motorHusilloON = FALSE AND "NodeRed".pidON = FALSE THEN
+	    "NodeRed".variadorHzFrecuenciaSalida := 0;
+	ELSIF "NodeRed".motorHusilloON = FALSE AND "NodeRed".pidON = TRUE THEN
+	    "NodeRed".variadorHzFrecuenciaSalida := "NodeRed".variadorHzFrecuenciaAuto;
+	    "NodeRed".motorHusilloON := TRUE;
+	ELSIF "NodeRed".motorHusilloON = TRUE AND "NodeRed".pidON = FALSE THEN
+	    "NodeRed".variadorHzFrecuenciaSalida := REAL_TO_INT(INT_TO_REAL("NodeRed".variadorHzFrecuenciaManual) * 460.8);  //460.8 = 27648/60
+	ELSIF "NodeRed".motorHusilloON = TRUE AND "NodeRed".pidON = TRUE THEN
+	    "NodeRed".variadorHzFrecuenciaSalida := "NodeRed".variadorHzFrecuenciaAuto;
+	(* ELSIF "NodeRed".pidON = FALSE = FALSE AND "NodeRed".motorHusilloON  = TRUE THEN
+	    "NodeRed".variadorHzFrecuenciaSalida := 0;
+	    "NodeRed".motorHusilloON := FALSE; *)
+	END_IF; *)
+	
+	
+	// Validar cuando llega el PID a una diferencia del setpoint y el peso
+	
+	
+	"OUT_motorHusillo" := "NodeRed".motorHusilloON;
+	"OUT_variadorHzFrecOperacion" := INT_TO_WORD("NodeRed".variadorHzFrecuenciaSalida);
+END_ORGANIZATION_BLOCK
+

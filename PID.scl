@@ -1,0 +1,17 @@
+﻿ORGANIZATION_BLOCK "PID"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+   VAR_TEMP 
+      pidOut : Real;
+   END_VAR
+
+
+BEGIN
+	"PID Pigmento"(Setpoint:="NodeRed".setpoint,
+	               Input:="NodeRed".gramosSiwarex,
+	               Output=> #pidOut);
+	
+	"NodeRed".variadorHzFrecuenciaAuto := REAL_TO_INT(#pidOut * 460.8);     //460.8 = 27648/60
+	
+END_ORGANIZATION_BLOCK
+
