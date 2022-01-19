@@ -4,33 +4,45 @@ TITLE = "Main Program Sweep (Cycle)"
 VERSION : 0.1
    VAR_TEMP 
       lifebit : Bool;
+      error : Int;
    END_VAR
 
    VAR CONSTANT 
       sApagado : Int := 10;
       sManual : Int := 20;
       sAutomatico : Int := 30;
+      sParoTotal : Int := 40;
    END_VAR
 
 
 BEGIN
 	// siwarex 
-	"WP321_DB"(HW_ID:="Local~SIWAREX_WP321_1",
-	           LIFEBIT=>#lifebit);
+	"WP321_DB"(HW_ID := "Local~SIWAREX_WP321_1",
+	           LIFEBIT => #lifebit);
 	
-	"NodeRed".gramosSiwarex := REAL_TO_INT(IN :="WP321_DB".s_IO_DATA.PROCESS_VAL_1 * 1000);
+	"NodeRed".gramosSiwarex := REAL_TO_INT(IN := "WP321_DB".s_IO_DATA.PROCESS_VAL_1 * 1000);
 	
-	// Control from Node-Red
+	// Paro
+	IF "NodeRed".paro = TRUE THEN
+	    "NodeRed".variadorHzFrecuenciaSalida := 0;
+	    "NodeRed".motorHusilloON := FALSE;
+	    "NodeRed".pidON := FALSE;
+	    "States".sActual := #sApagado;
+	END_IF;
+	
+	// Control States
 	CASE "States".sActual OF
 	    #sApagado:
 	        "NodeRed".variadorHzFrecuenciaSalida := 0;
 	        IF "NodeRed".motorHusilloON = TRUE AND "NodeRed".pidON = FALSE THEN
 	            "NodeRed".variadorHzFrecuenciaSalida := REAL_TO_INT(INT_TO_REAL("NodeRed".variadorHzFrecuenciaManual) * 460.8);
 	            "States".sActual := #sManual;
+	            "NodeRed".paro := FALSE;
 	        ELSIF "NodeRed".motorHusilloON = FALSE AND "NodeRed".pidON = TRUE THEN
 	            "NodeRed".variadorHzFrecuenciaSalida := "NodeRed".variadorHzFrecuenciaAuto;
 	            "NodeRed".motorHusilloON := TRUE;
 	            "States".sActual := #sAutomatico;
+	            "NodeRed".paro := FALSE;
 	        END_IF;
 	    #sManual:
 	        "NodeRed".variadorHzFrecuenciaSalida := REAL_TO_INT(INT_TO_REAL("NodeRed".variadorHzFrecuenciaManual) * 460.8);  //460.8 = 27648/60
@@ -42,13 +54,21 @@ BEGIN
 	        END_IF;
 	    #sAutomatico:
 	        "NodeRed".variadorHzFrecuenciaSalida := "NodeRed".variadorHzFrecuenciaAuto;
-	        IF "NodeRed".motorHusilloON = TRUE AND "NodeRed".pidON = FALSE  THEN
+	        // Evaluaing Setpoint Error
+	        #error := "NodeRed".setpoint - "NodeRed".gramosSiwarex;
+	        IF #error <= "NodeRed".errorMin THEN  // errorMin := 10
+	            "NodeRed".motorHusilloON := FALSE;
+	            "NodeRed".pidON := FALSE;
+	            "States".sActual := #sApagado;
+	        END_IF;
+	        // Node-Red Controls
+	        IF "NodeRed".motorHusilloON = TRUE AND "NodeRed".pidON = FALSE THEN
 	            "NodeRed".motorHusilloON := FALSE;
 	            "States".sActual := #sApagado;
 	        ELSIF "NodeRed".motorHusilloON = FALSE AND "NodeRed".pidON = TRUE THEN
 	            "NodeRed".pidON := FALSE;
 	            "States".sActual := #sApagado;
-	        END_IF; 
+	        END_IF;
 	END_CASE;
 	
 	
