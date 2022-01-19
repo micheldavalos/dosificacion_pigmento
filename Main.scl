@@ -20,13 +20,7 @@ BEGIN
 	
 	"NodeRed".gramosSiwarex := REAL_TO_INT(IN :="WP321_DB".s_IO_DATA.PROCESS_VAL_1 * 1000);
 	
-	
-	(* IF "NodeRed".pidON = TRUE THEN
-	    "NodeRed".motorHusilloON := TRUE;
-	    "NodeRed".variadorHzFrecuenciaSalida := "NodeRed".variadorHzFrecuenciaAuto;
-	END_IF; *)
-	
-	
+	// Control from Node-Red
 	CASE "States".sActual OF
 	    #sApagado:
 	        "NodeRed".variadorHzFrecuenciaSalida := 0;
@@ -56,20 +50,6 @@ BEGIN
 	            "States".sActual := #sApagado;
 	        END_IF; 
 	END_CASE;
-	
-	(* IF "NodeRed".motorHusilloON = FALSE AND "NodeRed".pidON = FALSE THEN
-	    "NodeRed".variadorHzFrecuenciaSalida := 0;
-	ELSIF "NodeRed".motorHusilloON = FALSE AND "NodeRed".pidON = TRUE THEN
-	    "NodeRed".variadorHzFrecuenciaSalida := "NodeRed".variadorHzFrecuenciaAuto;
-	    "NodeRed".motorHusilloON := TRUE;
-	ELSIF "NodeRed".motorHusilloON = TRUE AND "NodeRed".pidON = FALSE THEN
-	    "NodeRed".variadorHzFrecuenciaSalida := REAL_TO_INT(INT_TO_REAL("NodeRed".variadorHzFrecuenciaManual) * 460.8);  //460.8 = 27648/60
-	ELSIF "NodeRed".motorHusilloON = TRUE AND "NodeRed".pidON = TRUE THEN
-	    "NodeRed".variadorHzFrecuenciaSalida := "NodeRed".variadorHzFrecuenciaAuto;
-	(* ELSIF "NodeRed".pidON = FALSE = FALSE AND "NodeRed".motorHusilloON  = TRUE THEN
-	    "NodeRed".variadorHzFrecuenciaSalida := 0;
-	    "NodeRed".motorHusilloON := FALSE; *)
-	END_IF; *)
 	
 	
 	// Validar cuando llega el PID a una diferencia del setpoint y el peso
